@@ -2,16 +2,15 @@ import "./Form.scss";
 import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import Select from "../Select/Select";
-import { fetchDepartmentData, fetchTelanganaData } from "../../../utils/telanganaData";
-import { isPincodeValid } from "../../../utils/validations";
-import { addLeadData } from "../../../utils/leadData";
+import { fetchDepartmentData, fetchTelanganaData } from "../../utils/telanganaData";
+import { isEmailValid, isPincodeValid } from "../../utils/validations";
 import MapAutoInput from "../Map/MapAutoInput";
 import RenderMapBySearch from "../Map/RenderMapBySearch";
 import GovernmentForm from "./GovernmentForm";
 import ResidentialForm from "./ResidentialForm";
 import CellTowerForm from "./CellTowerForm";
 import EnterpriseForm from "./EnterpriseForm";
-
+import { addLeadData } from "../../utils/leadData";
 
 function Form({ text, paragraph, page }) {
 
@@ -109,7 +108,9 @@ function Form({ text, paragraph, page }) {
       let pincode = response.searchResponse.pincode;
       let districtPincode = '';
       let selectedGp = '';
-      let stringRegex = /[^a-z ]/gi;
+      const stringRegex = /[^a-z ]/gi;
+      const numericRegex = /[^0-9 ]/gi;
+      const pincodeRegex = /^(50)([0-9]{4})$/;
 
       if(district !== '') {
         districtPincode += district;
@@ -153,6 +154,13 @@ function Form({ text, paragraph, page }) {
           selectedGp = ad.replace(stringRegex, "");
         } else if(telanganaData.pincodeWithLGDC[ad]) {
           setLgdCode(telanganaData.pincodeWithLGDC[ad]);
+        } else {
+          const pinArr = location.replace(numericRegex, '').trim().split(' ');
+          pinArr.forEach((pin) => {
+            if(pin.match(pincodeRegex)) {
+              setLgdCode(telanganaData.pincodeWithLGDC[pin]);
+            }
+          });
         }
         if(selectedGp != '' && telanganaData.gpWithCode[selectedGp]) {
           locationDetailsFromMap.gpName = selectedGp;
@@ -167,9 +175,9 @@ function Form({ text, paragraph, page }) {
       locationDetailsFromMap.gpName = option2.gp;
       locationDetailsFromMap.gpLGDCode = (telanganaData.gpWithCode[option2.gp]) ? telanganaData.gpWithCode[option2.gp] : '';
     } else if(selectedOption.option1) {
-      locationDetailsFromMap.gpName = option1.gp;
+      locationDetailsFromMap.gpName = option1.gp.value;
       locationDetailsFromMap.gpLGDCode = (telanganaData.gpWithCode[option1.gp]) ? telanganaData.gpWithCode[option1.gp] : '';
-      locationDetailsFromMap.pincode = option1.pincode;
+      locationDetailsFromMap.pincode = option1.pincode.value;
     }
 
     locationDetailsFromMap.latitude = latitude;
@@ -187,15 +195,15 @@ function Form({ text, paragraph, page }) {
   const getYourDetailsForm = () => {
     switch(page) {
       case 'government':
-        setYourDetailsForm([<GovernmentForm key="government" yourDetails={yourDetails} departmentData={departmentData}  handleYourDetailsChange={handleYourDetailsChange} />]);
+        setYourDetailsForm([<GovernmentForm key="government" departmentData={departmentData}  handleYourDetailsChange={handleYourDetailsChange} />]);
         break;
        
       case 'residential':
-        setYourDetailsForm([<ResidentialForm key="residential" departmentData={departmentData} handleYourDetailsChange={handleYourDetailsChange}/>]) 
+        setYourDetailsForm([<ResidentialForm key="residential" handleYourDetailsChange={handleYourDetailsChange}/>]) 
         break;
 
       case 'cellTower':
-        setYourDetailsForm([<CellTowerForm key="celltower" departmentData={departmentData} handleYourDetailsChange={handleYourDetailsChange}/>]) 
+        setYourDetailsForm([<CellTowerForm key="celltower" handleYourDetailsChange={handleYourDetailsChange}/>]) 
         break;
 
       case 'enterprise':
@@ -213,6 +221,18 @@ function Form({ text, paragraph, page }) {
         setYourDetails({ name: '', mobile: '', department: '', subdepartment: '', services: [], otherServices: '' });
         break;
 
+      case 'residential':
+        setYourDetails({name: '', mobile: ''});
+        break;
+
+      case 'cellTower':
+        setYourDetails({name: '', mobile: '', organizationName:'', email: '', services: [], otherServices: ''});
+        break;
+
+      case 'enterprise':
+        setYourDetails({name: '', mobile: '', organizationName:'', email:'', services: [], otherServices: ''});
+       break;   
+
       default:
         setYourDetails({});
     }
@@ -223,27 +243,62 @@ function Form({ text, paragraph, page }) {
   };
 
   const checkIfYourDetailsFilled = () => {
+    addLeadData.siteA.address.districtName = locationDetailsFromMap.districtName;
+    addLeadData.siteA.address.districtLGDCode = locationDetailsFromMap.districtLGDCode;
+    addLeadData.siteA.address.mandalName = locationDetailsFromMap.mandalName;
+    addLeadData.siteA.address.mandalLGDCode = locationDetailsFromMap.mandalLGDCode;
+    addLeadData.siteA.address.gpName = locationDetailsFromMap.gpName;
+    addLeadData.siteA.address.gpLGDCode = locationDetailsFromMap.gpLGDCode;
+    addLeadData.siteA.address.address = location;
+    addLeadData.siteA.address.pincode = locationDetailsFromMap.pincode;
+    addLeadData.siteA.address.latitude = locationDetailsFromMap.latitude;
+    addLeadData.siteA.address.longitude = locationDetailsFromMap.longitude;
+
     switch(page) {
       case 'government':
         if(yourDetails?.name?.length > 2 && yourDetails?.mobile?.length == 10 && yourDetails?.department?.length > 0 && yourDetails?.subdepartment?.length > 0 && (yourDetails?.services?.length > 0 || yourDetails?.otherServices?.length > 0)) {
           addLeadData.customerName = yourDetails.name;
           addLeadData.departmentName = yourDetails.department;
           addLeadData.contactNumber = yourDetails.mobile;
-          addLeadData.siteA.address.districtName = locationDetailsFromMap.districtName;
-          addLeadData.siteA.address.districtLGDCode = locationDetailsFromMap.districtLGDCode;
-          addLeadData.siteA.address.mandalName = locationDetailsFromMap.mandalName;
-          addLeadData.siteA.address.mandalLGDCode = locationDetailsFromMap.mandalLGDCode;
-          addLeadData.siteA.address.gpName = locationDetailsFromMap.gpName;
-          addLeadData.siteA.address.gpLGDCode = locationDetailsFromMap.gpLGDCode;
-          addLeadData.siteA.address.address = location;
-          addLeadData.siteA.address.pincode = locationDetailsFromMap.pincode;
-          addLeadData.siteA.address.latitude = locationDetailsFromMap.latitude;
-          addLeadData.siteA.address.longitude = locationDetailsFromMap.longitude;
           return true;
         } else {
           return false;
         }
         break;
+
+      case 'residential':
+        if(yourDetails?.name?.length > 2 && yourDetails?.mobile?.length == 10) {
+          addLeadData.customerName = yourDetails.name;
+          addLeadData.contactNumber = yourDetails.mobile;
+          return true;
+        } else {
+          return false;
+        }
+        break;
+
+      case 'cellTower':
+        if(yourDetails?.name?.length > 2 && yourDetails?.mobile?.length == 10 && yourDetails?.organizationName?.length > 0 && (yourDetails?.email?.length > 0 && isEmailValid(yourDetails?.email).status) && (yourDetails?.services?.length > 0 || yourDetails?.otherServices?.length > 0)) {
+          addLeadData.customerName = yourDetails.organizationName;
+          addLeadData.contactNumber = yourDetails.mobile;
+          addLeadData.firstName = yourDetails.name;
+          addLeadData.contactEmail = yourDetails.email;
+          return true;
+        } else {
+          return false;
+        }
+        break;
+
+        case 'enterprise':
+          if(yourDetails?.name?.length > 2 && yourDetails?.mobile?.length == 10 && yourDetails?.organizationName?.length > 0 && (yourDetails?.email?.length > 0 && isEmailValid(yourDetails?.email).status) && (yourDetails?.services?.length > 0 || yourDetails?.otherServices?.length > 0)) {
+            addLeadData.customerName = yourDetails.organizationName;
+            addLeadData.contactNumber = yourDetails.mobile;
+            addLeadData.firstName = yourDetails.name;
+            addLeadData.contactEmail = yourDetails.email;
+            return true;
+          } else {
+            return false;
+          }
+          break;
 
       default:
         break;
@@ -251,7 +306,8 @@ function Form({ text, paragraph, page }) {
   }
 
   const checkAvailability = () => {
-    const availabilityApi = `${bssApi}?type=GP&lgdCode=${lgdCode}`;
+    const availabilityApi = `${bssApi}?type=GP&lgdCode=${lgdCode}`;   
+    console.log("availabilityApi", availabilityApi);
     axios
       .get(availabilityApi)
       .then(function(response) {
@@ -270,16 +326,9 @@ function Form({ text, paragraph, page }) {
   };
 
   const addLead = () => {
-    const addLeadApi = `${bssApi}saveData`;
+    const addLeadApi = `${bssApi}saveData`;   
     axios
-      .request({
-        method: "POST",
-        url: addLeadApi,
-        headers: {
-          "content-type": "application/json",
-        },
-        data: addLeadData
-      })
+      .post(addLeadApi, addLeadData)
       .then(function (response) {
         console.log(response);
       })
@@ -377,12 +426,12 @@ function Form({ text, paragraph, page }) {
   }, [location]);
 
   useEffect(() => {
-    console.log('Hello');
-    console.log('option1.gp.value: ', option1.gp.value.length);
-    console.log('option2.gp: ', option2.gp.length);
-    console.log('option3: ', option3.length);
-    console.log('lgdCode: ', lgdCode.length);
-    if((option1.gp.value.length > 0 || option2.gp.length > 0 || option3.length > 0) && lgdCode.toString().length > 0) {
+    // console.log('Hello');
+    // console.log('option1.gp.value: ', option1.gp.value.length);
+    // console.log('option2.gp: ', option2.gp.length);
+    // console.log('option3: ', option3.length);
+    // console.log('lgdCode: ', lgdCode.length);
+    if((option1.gp.value.length > 0 || option2.gp.length > 0 || option3.length > 0) && lgdCode?.toString().length > 0) {
       console.log('Step 1');
       setButtonsState((currentValue) => { return { ...currentValue, button1: true } })
     } else {

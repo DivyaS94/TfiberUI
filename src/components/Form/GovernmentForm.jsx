@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import Select from "../Select/Select";
 import './GovernmentForm.scss';
-import { isMobileValid, isNameValid } from "../../../utils/validations";
+import { isMobileValid, isNameValid } from "../../utils/validations";
 
-function GovernmentForm({ yourDetails, handleYourDetailsChange, departmentData }) {
+function GovernmentForm({ handleYourDetailsChange, departmentData }) {
 
   const [yourDetail, setYourDetail] = useState({
     name: '', mobile: '', department: '', subdepartment: '', services: [], otherServices: ''
@@ -73,7 +73,7 @@ function GovernmentForm({ yourDetails, handleYourDetailsChange, departmentData }
             name="name"
             value={yourDetail.name || ''}
             onChange={handleNameChange}
-            autoComplete="of"
+            autoComplete="off"
           />
         </div>
         <div className="user-number">
@@ -84,7 +84,7 @@ function GovernmentForm({ yourDetails, handleYourDetailsChange, departmentData }
             placeholder="+91"
             value={yourDetail.mobile || ''}
             onChange={handleMobileChange}
-            autoComplete="of"
+            autoComplete="off"
           />
         </div>
       </div>
@@ -116,7 +116,7 @@ function GovernmentForm({ yourDetails, handleYourDetailsChange, departmentData }
           <label>
             <input
               type="checkbox"
-              name="ill"
+              name="InternetLeasedLine"
               value="Internet Leased Line"
               checked={isChecked.check2}
               onChange={(e) => handleCheckboxChange('check2', e.target.value)}
@@ -142,7 +142,7 @@ function GovernmentForm({ yourDetails, handleYourDetailsChange, departmentData }
           name="other"
           value={yourDetail.otherServices || ''}
           onChange={handleOtherServicesChange}
-          autoComplete="of"
+          autoComplete="off"
         />
       </div>
     </div>
